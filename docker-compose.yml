@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  app:
+    image: nginx:latest
+    restart: always
+    volumes:
+      - ./4G:/etc/nginx/html/4G:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "127.0.0.1:8000:80"
+    healthcheck:
+        test: ["CMD", "service", "nginx", "status"]
+        interval: 1s
+        timeout: 10s
+        retries: 10
+        start_period: 0s
+
+  pub:
+    logging:
+      driver: "local"
+      options:
+        max-size: "10m"
+    depends_on:
+      app:
+         condition: service_healthy
+    network_mode: "service:app"
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel --no-autoupdate --loglevel debug --transport-loglevel debug --url http://127.0.0.1:80
